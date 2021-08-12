@@ -7,19 +7,27 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.util.HashMap;
+import java.util.Map.Entry;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
-public class Base_Final { // 페이징 정보 가져오기
+public class Stack_Num_noTouch_Final { // 기술 스택 + 고유 번호(프로그래머스 기준!) 컬럼 파싱 or DB저장
 
 	public static void main(String ar[]) throws JSONException, IOException {
 
-		String proGrammersURL = "https://programmers.co.kr"; // title.get("url")앞에 붙이는 url, 채용공고 모드 링크 매칭용
+		Connection conn = null;
+		PreparedStatement pstmt = null;
 
-		for (int i = 1; i <= 1; i++) { // 긁어올 공고 페이지수 설정 (필수)
+		HashMap<String, String> stack = new HashMap<String, String>();
+
+		for (int i = 1; i <= 64; i++) {
 
 			String url = "https://programmers.co.kr/api/job_positions/?page=" + i + "&order=default";
 //						  https://programmers.co.kr/api/job_positions/1496
@@ -37,26 +45,55 @@ public class Base_Final { // 페이징 정보 가져오기
 				JSONObject title = (JSONObject) jobPosions.get(j);
 
 				// 배열이 아니야 ..... 그냥 JSONObject에서 "name" : value로 뽑아내면 될듯?
-				JSONObject name = (JSONObject) title.get("company"); // company JSONObject에서 name(회사 이름)항목 가져오기
 
 				JSONArray technicalTags = (JSONArray) title.get("technicalTags");
-
-				// technicalTags JSONArray에서 name(기술 스택)모두 가져오기
-				System.out.print("기술 스택 : "); // 출력부
 
 				for (int k = 0; k < technicalTags.length(); k++) {
 
 					JSONObject tags = (JSONObject) technicalTags.get(k);
-
-					System.out.print(tags.get("name") + ","); // 출력부
+					stack.put(tags.get("name").toString(), tags.get("id").toString());
 
 				}
-				
-				String result = proGrammersURL + title.get("url");
-				System.out.println("\t회사 이름 :" + name.get("name") + "  \t  공고 페이지 :" + result ); // 출력부
 
 			}
+//			for (Iterator iterator = key.iterator(); iterator.hasNext()) {
+//				
+//				String keyValue = (String) iterator.next();
+//				String valueVar = (String) map.get(keyValue);
+//	   
+//				System.out.println(keyValue +" = " +valueVar);
+//			}
+
+//			HashMap에서 Entry로 가져오기
+
 		}
+
+		try {
+
+			// 1. driver 설정
+			Class.forName("oracle.jdbc.OracleDriver");
+
+			// 2. connection 가져오기
+			conn = DriverManager.getConnection("jdbc:oracle:thin:@localhost:1521:xe", "hr", "hr");
+
+			String sql = "insert into stack(stack,stackNum) values( ? , ? )";
+			pstmt = conn.prepareStatement(sql);
+
+			for (Entry<String, String> entry : stack.entrySet()) {
+
+//				System.out.println(entry.getKey() + entry.getValue());
+				pstmt.setString(1, entry.getKey());
+				pstmt.setString(2, entry.getValue());
+				pstmt.executeUpdate();
+
+			}
+
+		} catch (Exception e) {
+
+			e.printStackTrace();
+
+		}
+
 	}
 
 // JSON데이터 URL에서 가져오기
